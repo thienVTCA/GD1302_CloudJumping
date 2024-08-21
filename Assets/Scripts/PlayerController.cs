@@ -8,10 +8,11 @@ public class PlayerController : MonoBehaviour
     int maxHealth = 10, maxEnergy = 10;
     int currentHealth, currentEnergy;
     int teleportEnergyCharge;
+    bool isJump = false;
     [SerializeField]
     float moveSpeed = 10;
     [SerializeField]
-    float jumpForce = 2.0f;
+    float jumpForce = 5.0f;
     Rigidbody mRigidbody;
     Vector3 jump;
     bool isAttacking, isTeleport;
@@ -24,10 +25,12 @@ public class PlayerController : MonoBehaviour
         teleportEnergyCharge = 3;
         isAttacking = false;
         isTeleport = false;
+        isJump = false;
         currentHealth = maxHealth;
         currentEnergy = maxEnergy;
         jump = new Vector3(0.0f, 2.0f, 0.0f);
         mRigidbody = GetComponent<Rigidbody>();
+        
         teleportLineBeam.gameObject.SetActive(false);
     }
 
@@ -37,17 +40,29 @@ public class PlayerController : MonoBehaviour
         var v = Input.GetAxis("Vertical");
         var h = Input.GetAxis("Horizontal");
         var move = new Vector3(h, 0, 0);
-        transform.Translate(move * moveSpeed * Time.deltaTime);
-        if (Input.GetKeyDown(KeyCode.Space))
+        var torque = Input.GetAxis("Fire1");
+        mRigidbody.AddTorque(transform.up * jumpForce * torque);
+        transform.Translate(move * moveSpeed * Time.deltaTime, Space.World);
+        if (Input.GetKeyDown(KeyCode.Space) && !isJump)
         {
             mRigidbody.AddForce(jump * jumpForce, ForceMode.Impulse);
+            isJump = true;
         }
-        if (currentEnergy > teleportEnergyCharge && Input.GetKeyDown(KeyCode.S))
+        if(Input.GetKeyDown(KeyCode.S))
         {
-            //teleport
-            isTeleport = true;
-            
+            if (!isTeleport && currentEnergy > teleportEnergyCharge)
+            {
+                //teleport
+                isTeleport = true;
+                teleportLineBeam.gameObject.SetActive(true);
+            }
+            else
+            {
+                isTeleport = false;
+                teleportLineBeam.gameObject.SetActive(false);
+            }
         }
+        
         if (!isTeleport && Input.GetKeyDown(KeyCode.A))
         {
             //attack
@@ -56,25 +71,32 @@ public class PlayerController : MonoBehaviour
         {
             Teleport();
         }
+
+        
     }
     
     void Teleport()
     {
        //Debug.Log("Teleport");
-       if(Input.GetMouseButtonDown(0))
-       {
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            Debug.DrawRay(Input.mousePosition, ray.direction);
-            if (Physics.Raycast(ray, out hit))
-            {
-                Debug.Log("Raycast " + LayerMask.LayerToName(hit.collider.gameObject.layer));
-                if (LayerMask.LayerToName(hit.collider.gameObject.layer).Equals("WallTeleport"))
+       //if(Input.GetMouseButtonDown(0))
+       //{
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        
+        int layerMask = 1 << 10;
+        if (Physics.Raycast(ray, out hit))
+        {
+            Vector3 vtDir = hit.point - Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            Debug.DrawRay(Camera.main.ScreenToWorldPoint(Input.mousePosition), vtDir);
+            //Debug.Log("Raycast " + LayerMask.LayerToName(hit.collider.gameObject.layer));
+            //if (LayerMask.LayerToName(hit.collider.gameObject.layer).Equals("WallTeleport"))
+            //{
+                //Debug.DrawRay(Camera.main.ScreenToWorldPoint(Input.mousePosition), hit.point);
+                teleportLineBeam.SetPositions(new Vector3[] { transform.position, hit.point });
+                RaycastHit rayHit;
+                Vector3 rayDirect = (-transform.position + hit.point).normalized;
+                float distance = (-transform.position + hit.point).magnitude;
+                if (Input.GetMouseButtonDown(0))
                 {
-                    teleportLineBeam.gameObject.SetActive(true);
-                    teleportLineBeam.SetPositions(new Vector3[] { transform.position, hit.point });
-                    RaycastHit rayHit;
-                    Vector3 rayDirect = (-transform.position+hit.point).normalized;
-                    float distance = (-transform.position + hit.point).magnitude;
                     if (Physics.Raycast(transform.position, rayDirect, out rayHit, distance))
                     {
                         if (LayerMask.LayerToName(rayHit.collider.gameObject.layer).Equals("Cloud"))
@@ -84,8 +106,20 @@ public class PlayerController : MonoBehaviour
                             transform.position = rayHit.collider.transform.GetChild(0).position;
                         }
                     }
+                    teleportLineBeam.gameObject.SetActive(false);
+                    isTeleport = false;
                 }
-            }
+            //}
+        }
+        //    teleportLineBeam.gameObject.SetActive(false);
+        //}
+    }
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        if(collision.gameObject.tag.Equals("ground"))
+        {
+            isJump = false;
         }
     }
 }
