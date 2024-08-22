@@ -10,7 +10,7 @@ public class PlayerController : MonoBehaviour
     int teleportEnergyCharge;
     bool isJump = false;
     [SerializeField]
-    float moveSpeed = 10;
+    float moveSpeed = 10, attackSpeed = 10, attackRange = 3;
     [SerializeField]
     float jumpForce = 5.0f;
     Rigidbody mRigidbody;
@@ -19,9 +19,12 @@ public class PlayerController : MonoBehaviour
     RaycastHit hit;
     [SerializeField]
     LineRenderer teleportLineBeam;
+    [SerializeField]
+    GameObject attackObject;
     // Start is called before the first frame update
     void Start()
     {
+        attackObject.SetActive(false);
         teleportEnergyCharge = 3;
         isAttacking = false;
         isTeleport = false;
@@ -37,17 +40,33 @@ public class PlayerController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        //player move
         var v = Input.GetAxis("Vertical");
         var h = Input.GetAxis("Horizontal");
         var move = new Vector3(h, 0, 0);
-        var torque = Input.GetAxis("Fire1");
-        mRigidbody.AddTorque(transform.up * jumpForce * torque);
         transform.Translate(move * moveSpeed * Time.deltaTime, Space.World);
+
+        // attack
+        if(Input.GetMouseButtonDown(0) && !isAttacking)
+        {
+            isAttacking = true;
+            attackObject.SetActive(true);
+        }
+        if(isAttacking && Input.GetMouseButtonUp(0))
+        {
+            isAttacking = false;
+            attackObject.SetActive(false);
+        }
+        var torque = Input.GetAxis("Fire1");
+        mRigidbody.AddTorque(transform.up * attackSpeed * torque);
+
         if (Input.GetKeyDown(KeyCode.Space) && !isJump)
         {
+            
             mRigidbody.AddForce(jump * jumpForce, ForceMode.Impulse);
             isJump = true;
         }
+
         if(Input.GetKeyDown(KeyCode.S))
         {
             if (!isTeleport && currentEnergy > teleportEnergyCharge)
@@ -71,8 +90,15 @@ public class PlayerController : MonoBehaviour
         {
             Teleport();
         }
+    }
 
-        
+    public void SubtractHealth(int subNumber)
+    {
+        currentHealth -= subNumber;
+        if(currentHealth <= 0)
+        {
+            // player die
+        }
     }
     
     void Teleport()
@@ -101,7 +127,7 @@ public class PlayerController : MonoBehaviour
                     {
                         if (LayerMask.LayerToName(rayHit.collider.gameObject.layer).Equals("Cloud"))
                         {
-                            //
+                            //move player position to cloud
                             Debug.Log("to cloud");
                             transform.position = rayHit.collider.transform.GetChild(0).position;
                         }
