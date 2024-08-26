@@ -16,6 +16,7 @@ public class EnemyController : MonoBehaviour
     {
         if(other.tag.Equals("playerAttack"))
         {
+            //add for player score and destroy enemy
             Destroy(gameObject);
         }
         Debug.Log("Player take dam");
@@ -23,6 +24,7 @@ public class EnemyController : MonoBehaviour
         if(playerController != null)
         {
             playerController.SubtractHealth(1);
+            Destroy(gameObject);
         }
     }
 

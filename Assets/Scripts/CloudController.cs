@@ -11,6 +11,15 @@ public class CloudController : MonoBehaviour
     {
     }
 
+    private void OnCollisionExit(Collision collision)
+    {
+        if (collision.gameObject.tag.Equals("Player"))
+        {
+            Debug.Log("player out");
+            mRigidbody.velocity = Vector3.zero;
+        }
+    }
+
     // Update is called once per frame
     void Update()
     {
