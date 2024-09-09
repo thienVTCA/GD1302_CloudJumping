@@ -9,6 +9,7 @@ TagManager:
   - playerAttack
   - cloud
   - bonus
+  - wallend
   layers:
   - Default
   - TransparentFX

@@ -7,6 +7,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField]
     int maxHealth = 10, maxEnergy = 10;
     int currentHealth, currentEnergy;
+    int playerScore = 0;
     [SerializeField]
     int teleportEnergyCharge = 3;
     bool isJump = false;
@@ -25,15 +26,25 @@ public class PlayerController : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        playerScore = 0;
+        UIManager.uiManagerInstance.ShowScore(playerScore);
         attackObject.SetActive(false);
         isAttacking = false;
         isTeleport = false;
         isJump = false;
         currentHealth = maxHealth;
+        UIManager.uiManagerInstance.ShowHealth(currentHealth, maxHealth);
         currentEnergy = maxEnergy;
+        UIManager.uiManagerInstance.ShowEnergy(currentEnergy, maxEnergy);
         jump = new Vector3(0.0f, 2.0f, 0.0f);
         mRigidbody = GetComponent<Rigidbody>();
         teleportLineBeam.gameObject.SetActive(false);
+    }
+
+    public void AddScore()
+    {
+        playerScore++;
+        UIManager.uiManagerInstance.ShowScore(playerScore);
     }
 
     // Update is called once per frame
@@ -46,15 +57,19 @@ public class PlayerController : MonoBehaviour
         transform.Translate(move * moveSpeed * Time.deltaTime, Space.World);
 
         // attack
-        if(Input.GetMouseButtonDown(0) && !isAttacking)
+        if(Input.GetMouseButtonDown(0) && !isAttacking && !isTeleport && !isJump)
         {
             isAttacking = true;
             attackObject.SetActive(true);
         }
         if(isAttacking && Input.GetMouseButtonUp(0))
         {
+            RigidbodyConstraints oldConstrain = mRigidbody.constraints;
+            mRigidbody.constraints = RigidbodyConstraints.FreezeRotation;
             isAttacking = false;
             attackObject.SetActive(false);
+            mRigidbody.constraints = oldConstrain;
+            Debug.Log("player stop attack");
         }
         var torque = Input.GetAxis("Fire1");
         mRigidbody.AddTorque(transform.up * attackSpeed * torque);
@@ -67,7 +82,7 @@ public class PlayerController : MonoBehaviour
 
         if(Input.GetKeyDown(KeyCode.S))
         {
-            if (!isTeleport && currentEnergy > teleportEnergyCharge)
+            if (!isTeleport && currentEnergy >= teleportEnergyCharge)
             {
                 //teleport
                 isTeleport = true;
@@ -93,7 +108,8 @@ public class PlayerController : MonoBehaviour
     public void SubtractHealth(int subNumber)
     {
         currentHealth -= subNumber;
-        if(currentHealth <= 0)
+        UIManager.uiManagerInstance.ShowHealth(currentHealth, maxHealth);
+        if (currentHealth <= 0)
         {
             // player die
         }
@@ -125,6 +141,7 @@ public class PlayerController : MonoBehaviour
                 teleportLineBeam.gameObject.SetActive(false);
                 isTeleport = false;
                 currentEnergy -= teleportEnergyCharge;
+                UIManager.uiManagerInstance.ShowEnergy(currentEnergy, maxEnergy);
             }
         }
         
@@ -139,20 +156,28 @@ public class PlayerController : MonoBehaviour
         else if (collision.gameObject.tag.Equals("bonus"))
         {
             int bonusType = collision.gameObject.GetComponent<BonusController>().bonusType;
-            switch(bonusType)
+            int bonusAddNumber = collision.gameObject.GetComponent<BonusController>().bonusAddNumber;
+            switch (bonusType)
             {
                 case 0:
                     Debug.Log("player add health");
+                    currentHealth += bonusAddNumber;
+                    currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
+                    UIManager.uiManagerInstance.ShowHealth(currentHealth, maxHealth);
                     //add health
                     Destroy(collision.gameObject);
                     break;
-                case 1:
-                    Debug.Log("player add coins");
-                    //add coins
-                    Destroy(collision.gameObject);
-                    break;
+                //case 1:
+                //    Debug.Log("player add coins");
+                //    playerScore += bonusAddNumber;
+                //    //add coins
+                //    Destroy(collision.gameObject);
+                //    break;
                 default:
                     Debug.Log("player add energy");
+                    currentEnergy += bonusAddNumber;
+                    currentEnergy = Mathf.Clamp(currentEnergy,0,maxEnergy);
+                    UIManager.uiManagerInstance.ShowEnergy(currentEnergy, maxEnergy);
                     //add energy
                     Destroy(collision.gameObject);
                     break;

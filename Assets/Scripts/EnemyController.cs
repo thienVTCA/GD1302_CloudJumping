@@ -14,16 +14,28 @@ public class EnemyController : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if(other.tag.Equals("playerAttack"))
+        
+        if (other.tag.Equals("playerAttack"))
         {
+            var playerControllerAttack = other.gameObject.GetComponentInParent<PlayerController>();
+            //Debug.Log("player take score");
+            if (playerControllerAttack != null)
+            {
+                playerControllerAttack.AddScore();
+            }
             //add for player score and destroy enemy
             Destroy(gameObject);
         }
-        Debug.Log("Player take dam");
         var playerController = other.gameObject.GetComponent<PlayerController>();
-        if(playerController != null)
+        if (playerController != null)
         {
+            //Debug.Log("Player take dam");
             playerController.SubtractHealth(1);
+            Destroy(gameObject);
+        }
+        if (other.tag.Equals("wallend"))
+        {
+            //add for player score and destroy enemy
             Destroy(gameObject);
         }
     }
